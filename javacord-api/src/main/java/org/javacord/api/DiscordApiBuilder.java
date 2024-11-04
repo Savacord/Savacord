@@ -42,6 +42,38 @@ public class DiscordApiBuilder implements ChainableGloballyAttachableListenerMan
     public CompletableFuture<DiscordApi> login() {
         return delegate.login();
     }
+    /*SAVACORD MODIFICATIONS*/
+    /**
+     * Login to the account with a token.
+     *
+     * @return A {@link CompletableFuture} which contains the DiscordApi.
+     * @param token the discord token to connect with.
+     */
+    public CompletableFuture<DiscordApi> login(String token) {
+        setToken(token); return delegate.login();
+    }
+    /**
+     * Login to the account with a token and intents.
+     *
+     * @return A {@link CompletableFuture} which contains the DiscordApi.
+     * @param token the discord token to connect with.
+     */
+    public CompletableFuture<DiscordApi> login(String token,Intent... intents) {
+        setIntents(intents);
+        return login(token);
+    }
+
+    /**
+     * Login all shards to the account with a token.
+     * It is invalid to call {@link #setCurrentShard(int)} with
+     * anything but {@code 0} before calling this method.
+     *
+     * @return A list of {@link CompletableFuture}s which contain the {@code DiscordApi}s for the shards.
+     * @param token the discord token to connect with.
+     */
+    public List<CompletableFuture<DiscordApi>> loginAllShards(String token) {
+        setToken(token);return loginShards(shard -> true);
+    }
 
     /**
      * Login all shards to the account with the given token.

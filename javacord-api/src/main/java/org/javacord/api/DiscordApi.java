@@ -38,13 +38,7 @@ import org.javacord.api.entity.user.User;
 import org.javacord.api.entity.user.UserStatus;
 import org.javacord.api.entity.webhook.IncomingWebhook;
 import org.javacord.api.entity.webhook.Webhook;
-import org.javacord.api.interaction.ApplicationCommand;
-import org.javacord.api.interaction.ApplicationCommandBuilder;
-import org.javacord.api.interaction.ApplicationCommandUpdater;
-import org.javacord.api.interaction.MessageContextMenu;
-import org.javacord.api.interaction.ServerApplicationCommandPermissions;
-import org.javacord.api.interaction.SlashCommand;
-import org.javacord.api.interaction.UserContextMenu;
+import org.javacord.api.interaction.*;
 import org.javacord.api.listener.GloballyAttachableListenerManager;
 import org.javacord.api.util.DiscordRegexPattern;
 import org.javacord.api.util.concurrent.ThreadPool;
@@ -73,6 +67,18 @@ public interface DiscordApi extends GloballyAttachableListenerManager {
 
     Pattern ESCAPED_CHARACTER =
             Pattern.compile("\\\\(?<char>[^a-zA-Z0-9\\p{javaWhitespace}\\xa0\\u2007\\u202E\\u202F])");
+
+
+    /*SAVACORD MODIFICATIONS*/
+    /**
+     * Registers a Savacord Slash Command to the api.
+     * If the command has already been registered, this will replace it.
+     *
+     * @param command The slash command to be registered.
+     */
+    void registerSlashCommand(SavacordSlashCommand command);
+    /*SAVACORD MODIFICATIONS*/
+
 
     /**
      * Gets the used token.

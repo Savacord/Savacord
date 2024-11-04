@@ -36,6 +36,7 @@ import org.javacord.api.entity.message.Message;
 import org.javacord.api.entity.message.MessageSet;
 import org.javacord.api.entity.message.UncachedMessageUtil;
 import org.javacord.api.entity.message.mention.AllowedMentions;
+import org.javacord.api.entity.permission.PermissionType;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.entity.server.invite.Invite;
 import org.javacord.api.entity.sticker.Sticker;
@@ -44,13 +45,7 @@ import org.javacord.api.entity.user.User;
 import org.javacord.api.entity.user.UserStatus;
 import org.javacord.api.entity.webhook.IncomingWebhook;
 import org.javacord.api.entity.webhook.Webhook;
-import org.javacord.api.interaction.ApplicationCommand;
-import org.javacord.api.interaction.ApplicationCommandBuilder;
-import org.javacord.api.interaction.ApplicationCommandType;
-import org.javacord.api.interaction.MessageContextMenu;
-import org.javacord.api.interaction.ServerApplicationCommandPermissions;
-import org.javacord.api.interaction.SlashCommand;
-import org.javacord.api.interaction.UserContextMenu;
+import org.javacord.api.interaction.*;
 import org.javacord.api.listener.GloballyAttachableListener;
 import org.javacord.api.listener.ObjectAttachableListener;
 import org.javacord.api.util.auth.Authenticator;
@@ -103,20 +98,9 @@ import java.lang.ref.WeakReference;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.time.Duration;
+import java.util.*;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -134,6 +118,66 @@ import java.util.stream.Stream;
  * The implementation of {@link DiscordApi}.
  */
 public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
+    /*SAVACORD MODIFICATIONS*/
+    private final HashMap<Long, HashMap<String, SavacordSlashCommand>> slashCommands = new HashMap<>();
+    private final HashMap<String, Set<Long>> slashCommandNames = new HashMap<>();
+
+    @Override
+    public void registerSlashCommand(SavacordSlashCommand command){
+        registerSavaSlashCommand(command);
+    }
+
+    private void registerSavaSlashCommand(SavacordSlashCommand command) {
+        if (!assertSlashCommandValidity(command)) return;
+        SlashCommandInfo info = getSlashCommandInfo(command);
+        String name = info.name().toLowerCase();
+        long id = info.restrictToServer();
+        slashCommandNames.putIfAbsent(name, new HashSet<Long>());
+        slashCommandNames.get(name).add(id);
+        slashCommands.putIfAbsent(id, new HashMap<String, SavacordSlashCommand>());
+        slashCommands.get(id).putIfAbsent(name, command);
+
+        Set<PermissionType> enabledPerms = new HashSet<>(List.of(info.requiresPermissions()));
+        if(info.requiresAdmin()) enabledPerms.add(PermissionType.ADMINISTRATOR);
+        SlashCommandBuilder slashCommand = new SlashCommandBuilder().setName(name)
+                .setDescription(info.description()).setNsfw(info.nsfw())
+                .setEnabledInDms(info.enableInDms());
+        Optional.ofNullable(command.getSlashCommandOptions()).ifPresent(slashCommand::setOptions);
+        if(enabledPerms.isEmpty()) slashCommand.setDefaultEnabledForEveryone();
+        else slashCommand.setDefaultEnabledForPermissions(EnumSet.copyOf(enabledPerms));
+        if(info.restrictToServer()==-1L)slashCommand.createGlobal(this);
+        else slashCommand.createForServer(this, info.restrictToServer());
+    }
+
+    private boolean assertSlashCommandValidity(SavacordSlashCommand command){
+        if(!assertSlashCommandHasInfo(command))return false;
+        SlashCommandInfo info = getSlashCommandInfo(command);
+        String name = info.name().toLowerCase();
+        long id = info.restrictToServer();
+        if(!slashCommandNames.containsKey(name))return true;
+        if(slashCommandNames.get(name).contains(id)){
+            System.err.println("(SaVaSlashCommandHelper) WARN -> Error registering command \""
+                    +name+"\". Command already exists! Skipping.");return false;}
+        if((id!=-1L&&slashCommandNames.get(name).contains(-1L))||
+                (id==-1L&&!slashCommandNames.get(name).isEmpty())){
+            System.err.println("(SaVaSlashCommandHelper) WARN -> Error registering command \""
+                    +name+"\". Can not have a Server Command and Global Command with the same name! Skipping.");
+            return false;}
+        return true;
+    }
+
+    private static boolean assertSlashCommandHasInfo(SavacordSlashCommand command){
+        if(!command.getClass().isAnnotationPresent(SlashCommandInfo.class)){
+            System.err.println("Error with Slash Command implementation \""
+                    +command.getClass().getName()+
+                    "\" implimenting class must use annotation @SlashCommandInfo(). Skipping.");
+            return false;}return true;
+    }
+
+    private static SlashCommandInfo getSlashCommandInfo(SavacordSlashCommand command){
+        return command.getClass().getAnnotation(SlashCommandInfo.class);
+    }
+    /*SAVACORD MODIFICATIONS*/
 
     /**
      * The logger of this class.
@@ -662,7 +706,17 @@ public class DiscordApiImpl implements DiscordApi, DispatchQueueSelector {
                                     ready.completeExceptionally(exception);
                                 } else {
                                     this.applicationInfo = applicationInfo;
+                                    /*SAVACORD MODIFICATIONS*/
+                                    addSlashCommandCreateListener(event ->
+                                            slashCommands.get(event.getSlashCommandInteraction().getRegisteredCommandServerId().orElse(-1L))
+                                                    .get(event.getSlashCommandInteraction().getFullCommandName()).commandExecuted(event.getSlashCommandInteraction()));
+                                    getGlobalSlashCommands().join().forEach(command -> command.delete().join());
+                                    getServers().forEach(server -> getServerSlashCommands(server).join().forEach(
+                                            command -> command.delete().join()
+                                    ));
                                     ready.complete(this);
+
+
                                 }
                             });
                         } else {
