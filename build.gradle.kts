@@ -20,7 +20,7 @@ dependencies {
 }
 
 allprojects {
-    group = "org.javacord"
+    group = "io.github.savacord"
 
     description = "An easy to use multithreaded library for creating Discord bots in Java"
 
@@ -60,34 +60,26 @@ configure<PublishingExtension> {
 
         publishing {
             publications {
-                create<MavenPublication>("javacord") {
+                create<MavenPublication>("savacord") {
                     pom {
                         name.set(rootProject.name.capitalize() + (if (project.parent != null) " (${project.ext.get("shortName")})" else ""))
                         description.set(project.description)
-                        url.set("https://javacord.org")
+                        url.set("https://savacord.github.io")
                         issueManagement {
                             system.set("GitHub")
-                            url.set("https://github.com/Javacord/Javacord/issues")
+                            url.set("https://github.com/Savacord/Savacord/issues")
                         }
                         ciManagement {
                             system.set("GitHub Actions")
                         }
-                        inceptionYear.set("2015")
+                        inceptionYear.set("2024")
                         developers {
                             developer {
-                                id.set("Bastian")
-                                name.set("Bastian Oppermann")
-                                email.set("bastianoppermann1997@gmail.com")
-                                url.set("https://github.com/Bastian")
-                                timezone.set("Europe/Berlin")
-                            }
-                        }
-                        contributors {
-                            contributor {
-                                name.set("Björn Kautler")
-                                email.set("Bjoern@Kautler.net")
-                                url.set("https://github.com/Vampire")
-                                timezone.set("Europe/Berlin")
+                                id.set("SaVa")
+                                name.set("Saki Vali")
+                                email.set("sakuraavali@gmail.com")
+                                url.set("https://github.com/SakiVali")
+                                timezone.set("Canada/Alberta")
                             }
                         }
                         licenses {
@@ -99,12 +91,12 @@ configure<PublishingExtension> {
                             }
                         }
                         scm {
-                            connection.set("scm:git:https://github.com/Javacord/Javacord.git")
-                            developerConnection.set("scm:git:git@github.com:Javacord/Javacord.git")
-                            url.set("https://github.com/Javacord/Javacord")
+                            connection.set("scm:git:https://github.com/Savacord/Savacord.git")
+                            developerConnection.set("scm:git:git@github.com:Savacord/Savacord.git")
+                            url.set("https://github.com/Savacord/Savacord")
                         }
                         distributionManagement {
-                            downloadUrl.set("https://github.com/Javacord/Javacord/releases")
+                            downloadUrl.set("https://github.com/Savacord/Savacord/releases")
                         }
                     }
                 }
@@ -135,7 +127,7 @@ configure<PublishingExtension> {
             val signingKey = System.getenv("SIGNING_KEY")
             val signingPassword = System.getenv("SIGNING_PASSWORD")
             useInMemoryPgpKeys(signingKey, signingPassword)
-            sign(publishing.publications["javacord"])
+            sign(publishing.publications["savacord"])
         }
     }
 }
@@ -143,7 +135,7 @@ configure<PublishingExtension> {
 subprojects {
     publishing {
         publications {
-            named<MavenPublication>("javacord") {
+            named<MavenPublication>("savacord") {
                 from(components["java"])
             }
         }
@@ -152,7 +144,7 @@ subprojects {
 
 publishing {
     publications {
-        named<MavenPublication>("javacord") {
+        named<MavenPublication>("savacord") {
             // add the dependencies to the POM
             from(components["java"])
             // but do not try to publish the JAR
@@ -167,7 +159,7 @@ subprojects {
             this as StandardJavadocDocletOptions
             locale = "en"
             encoding = "UTF-8"
-            docTitle = "Javacord ${project.version} (${project.property("shortName")})"
+            docTitle = "Savacord ${project.version} (${project.property("shortName")})"
             windowTitle = "$docTitle Documentation"
             links("https://docs.oracle.com/javase/8/docs/api/")
             isUse = true
